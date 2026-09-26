@@ -1,0 +1,41 @@
+name: Publicar atualização no Discord
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  discord:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Publicar release no Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+
+        run: |
+          PAYLOAD=$(jq -n \
+            --arg title "🚀 ${RELEASE_NAME:-$RELEASE_TAG}" \
+            --arg description "$RELEASE_BODY" \
+            --arg url "$RELEASE_URL" \
+            '{
+              username: "C3D PRO Updates",
+              embeds: [{
+                title: $title,
+                description: $description,
+                url: $url,
+                color: 48340,
+                footer: {
+                  text: "C3D PRO • Print smarter. Manage better. Grow faster."
+                }
+              }]
+            }')
+
+          curl \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$DISCORD_WEBHOOK"
